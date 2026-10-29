@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFDD00">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Easy CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --yellow:#FFDD00; --ink:#0D0C22; --bg:#FFFBE6; --card:#fff; --muted:#6b6a7c;
+  --green:#7be495; --blue:#9fd3ff; --grey:#e3e3ea; --purple:#cdb4ff; --pink:#ffb3c7;
+  --red:#d92d20; --r:16px; --shadow:3px 3px 0 var(--ink);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:'Rubik',system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:110px}
+button,input,select,textarea{font:inherit;color:inherit}
+
+header{position:sticky;top:0;z-index:5;background:var(--yellow);border-bottom:2px solid var(--ink);padding:calc(10px + env(safe-area-inset-top)) 16px 12px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.logo{font-weight:800;font-size:22px;display:flex;align-items:center;gap:8px}
+.logo span{background:var(--ink);color:var(--yellow);border-radius:10px;padding:2px 9px}
+.count{font-size:13px;font-weight:500}
+.search{width:100%;border:2px solid var(--ink);border-radius:999px;padding:11px 16px;background:#fff;outline:none}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:2px solid var(--ink);background:#fff;border-radius:999px;padding:6px 13px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--ink);color:#fff}
+.chip b{font-weight:700;opacity:.65;margin-inline-start:4px}
+
+main{padding:16px;max-width:720px;margin:0 auto;display:grid;gap:14px}
+.sec{font-weight:800;font-size:14px;margin:6px 2px -4px;display:flex;align-items:center;gap:8px}
+.sec::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--yellow);border:2px solid var(--ink)}
+
+.card{background:var(--card);border:2px solid var(--ink);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;cursor:pointer}
+.card.pending{background:#FFE3E0;border-color:var(--red);box-shadow:3px 3px 0 var(--red)}
+.card.pending .actions{border-top-color:#f3b8b2}
+.sec.pend{gap:12px}
+.sec.pend::before{width:48px;height:48px;border:0;border-radius:1000px;background:url(data:image/jpeg;base64,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) center/cover no-repeat;box-shadow:0 2px 6px rgba(13,12,34,.35)}
+.urgent{color:var(--red);font-weight:800}
+.row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.name{font-weight:700;font-size:18px;line-height:1.2}
+.kid{font-size:14px;color:var(--muted);margin-top:2px}
+.badge{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:26px;border:2px solid var(--ink);border-radius:999px;padding:0 11px;font-size:12px;font-weight:700;line-height:1;text-align:center;white-space:nowrap}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:12px;font-size:13px}
+.meta div span{display:block;color:var(--muted);font-size:11px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.badge.tag{background:#fff}
+.actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:2px dashed #d9d4a8}
+.mini{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;border:2px solid var(--ink);background:#fff;border-radius:999px;padding:0 6px;font-size:13px;font-weight:600;line-height:1;cursor:pointer;text-align:center;text-decoration:none;color:var(--ink)}
+.mini svg{width:16px;height:16px;flex:none}
+.talkbtn{width:100%;margin-top:12px;gap:8px;justify-content:space-between;padding:0 14px}
+.talkbtn span{display:inline-flex;align-items:center;gap:6px}
+.talkbtn .chev{transition:transform .2s}
+.talkbtn.open .chev{transform:rotate(180deg)}
+.talk{margin-top:10px;padding:12px;border:2px solid var(--ink);border-radius:12px;background:#fff;font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.talk.none{color:var(--muted);font-style:italic}
+.actions .mini{border:0;background:rgba(0,0,0,.04)}
+.actions .mini.del{flex:none;width:40px;height:40px;min-height:0;padding:0;border-radius:50%;color:var(--red);background:rgba(217,45,32,.08)}
+.actions .mini.del svg{width:18px;height:18px}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty big{display:block;font-size:44px;margin-bottom:8px}
+
+.fab{position:fixed;inset-inline-start:50%;transform:translateX(50%);bottom:calc(18px + env(safe-area-inset-bottom));z-index:6;background:var(--yellow);border:2px solid var(--ink);border-radius:999px;box-shadow:var(--shadow);padding:15px 28px;font-weight:800;font-size:17px;cursor:pointer}
+.fab:active{transform:translateX(50%) translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+[dir=rtl] .fab{inset-inline-start:auto;left:50%;transform:translateX(-50%)}
+[dir=rtl] .fab:active{transform:translateX(-50%) translate(2px,2px)}
+
+.overlay{position:fixed;inset:0;background:rgba(13,12,34,.5);z-index:10;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:calc(100dvh - 32px);overflow:auto;border:2px solid var(--ink);border-radius:24px;box-shadow:var(--shadow);padding:18px 16px 20px;animation:up .22s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.sheet h2{position:relative;margin:0 0 14px;font-size:20px;display:flex;justify-content:center;align-items:center;min-height:34px}
+.sheet h2 .x{position:absolute;inset-inline-start:0;top:0}
+.x{border:2px solid var(--ink);background:#fff;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:16px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px;text-align:right}
+.in{width:100%;border:2px solid var(--ink);border-radius:12px;padding:11px 12px;background:#fff;outline:none;font-size:16px}
+.in:focus{box-shadow:var(--shadow)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two>*{min-width:0}
+.in{display:block;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:48px;line-height:1.3}
+textarea.in{min-height:84px;resize:vertical}
+form .in{text-align:right;text-align-last:right}
+select.in{text-align:right;text-align-last:right;padding-left:42px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230D0C22' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat left 14px center/16px}
+form .in::-webkit-date-and-time-value{text-align:right;min-height:1.3em}
+input[type=date].in,input[type=time].in{text-align:right}
+form .two{grid-template-columns:1fr}
+.confirm .two{grid-template-columns:1fr 1fr}
+@media(min-width:520px){form .two{grid-template-columns:1fr 1fr}}
+.save{width:100%;margin-top:20px;background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:14px;font-weight:800;font-size:17px;box-shadow:var(--shadow);cursor:pointer}
+.confirm{text-align:center}
+.confirm p{font-size:17px;font-weight:600;margin:8px 0 18px}
+.confirm .two button{border:2px solid var(--ink);border-radius:999px;padding:12px;font-weight:700;cursor:pointer;background:#fff}
+.confirm .two .danger{background:var(--pink)}
+.top-r{display:flex;align-items:center;gap:10px}
+.logout{border:2px solid var(--ink);background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.login{position:fixed;inset:0;z-index:30;background:var(--yellow);display:none;align-items:center;justify-content:center;padding:16px}
+.login.open{display:flex}
+.login .box{width:100%;max-width:380px;background:var(--bg);border:2px solid var(--ink);border-radius:24px;box-shadow:var(--shadow);padding:24px 18px}
+.login .logo{justify-content:center;font-size:30px;margin-bottom:6px}
+.login p{text-align:center;margin:0 0 8px;color:var(--muted);font-size:14px}
+.login .err{color:var(--red);font-weight:600;text-align:center;min-height:20px;margin-top:10px;font-size:14px}
+.toast{position:fixed;inset-inline:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:40;margin:auto;max-width:420px;background:var(--ink);color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;text-align:center;display:none}
+.toast.show{display:block}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div class="logo" dir="ltr">easy <span>CRM</span></div>
+    <div class="top-r"><div class="count" id="count"></div><button class="logout" id="logout" hidden>יציאה</button></div>
+  </div>
+  <input class="search" id="search" type="search" placeholder="חיפוש לפי שם, ילד או טלפון…">
+  <div class="chips" id="chips"></div>
+</header>
+
+<main id="list"></main>
+
+<button class="fab" id="add">＋ רשומה חדשה</button>
+
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+
+<div class="login" id="login"><div class="box">
+  <div class="logo" dir="ltr">easy <span>CRM</span></div>
+  <p>כניסה למשתמשים מורשים</p>
+  <form id="loginForm">
+    <label for="em">אימייל</label><input class="in" id="em" type="email" autocomplete="username" dir="ltr" required>
+    <label for="pw">סיסמה</label><input class="in" id="pw" type="password" autocomplete="current-password" dir="ltr" required>
+    <button class="save" id="loginBtn">כניסה</button>
+    <div class="err" id="loginErr" role="alert"></div>
+  </form>
+</div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const STATUSES = [
+  {k:'ממתין ליצירת קשר', e:'⏳', c:'#ff8a80'},
+  {k:'רשום', e:'✅', c:'var(--green)'},
+  {k:'הוזמן לניסיון', e:'📩', c:'var(--blue)'},
+  {k:'לא עונה', e:'📵', c:'var(--grey)'},
+  {k:'היה בטיסת ניסיון', e:'✈️', c:'var(--purple)'},
+  {k:'צריך לחזור אליו', e:'🔁', c:'var(--pink)'},
+];
+const INTERESTS = ['קורס לנוער','חוג לילדים','קורס קדם צה״ל','קורס למבוגרים'];
+const PENDING = STATUSES[0].k;
+
+/* ---------- שכבת אחסון ----------
+   כרגע localStorage. כשנוסיף התחברות נחליף רק את הפונקציות כאן
+   (למשל ל-Supabase/Firebase) כדי ששני המשתמשים יראו אותם נתונים. */
+const Store = {
+  key:'easy-crm-v1',
+  load(){
+    try{ const v = localStorage.getItem(this.key); if(v!==null) return JSON.parse(v)||[]; }catch{}
+    return demoRows();   // פעם ראשונה: רשומות דמה (למחוק אותן ידנית כשמתחילים לעבוד)
+  },
+  save(rows){ try{ localStorage.setItem(this.key, JSON.stringify(rows)) }catch{} },
+};
+
+function demoRows(){
+  const ago = n => { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); };
+  let n = 0;
+  const mk = (name,kid,phone,left,call,status,interest,notes='') =>
+    ({id:uid(),name,kid,phone,leftDate:ago(left),leftTime:['10:15','18:40','09:05','14:30','16:20','11:45','19:10','13:00'][n++%8],callDate:call==null?'':ago(call),status,interest,notes});
+  return [
+    mk('דנה כהן','נועם','0501234567',5,null,'ממתין ליצירת קשר','חוג לילדים','ביקשה שיחה אחרי 17:00'),
+    mk('יוסי לוי','איתי','0527654321',3,null,'ממתין ליצירת קשר','קורס לנוער'),
+    mk('מיכל אברהם','תמר','0541112233',1,null,'ממתין ליצירת קשר','חוג לילדים'),
+    mk('רונית שמעון','אורי','0509988776',9,7,'הוזמן לניסיון','קורס לנוער','מגיעים ביום שלישי'),
+    mk('אבי מזרחי','דור','0533344556',14,12,'רשום','קורס קדם צה״ל','שילם מקדמה'),
+    mk('נועה פרידמן','—','0586677889',10,8,'לא עונה','קורס למבוגרים','ניסיון שני ביום חמישי'),
+    mk('שרון ביטון','יובל','0521239876',20,17,'היה בטיסת ניסיון','חוג לילדים','אהב מאוד, מתלבט לגבי ימים'),
+    mk('עמית גולן','רותם','0544567890',12,10,'צריך לחזור אליו','קורס לנוער','לחזור אליו אחרי החגים'),
+  ];
+}
+let rows = [];
+const expanded = new Set();   // כרטיסים שפתוחים להצגת תוכן השיחה (לא נשמר)
+let filter = 'הכל', query = '';
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const today = () => new Date().toISOString().slice(0,10);
+const nowTime = () => new Date().toTimeString().slice(0,5);
+const fmt = d => d ? d.split('-').reverse().join('/') : '—';
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const lbl = k => { const s = STATUSES.find(x=>x.k===k); return s&&s.e ? s.e+' '+k : k; };
+const color = s => (STATUSES.find(x=>x.k===s)||{}).c || '#fff';
+
+const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const IC = {
+  call: svg('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>'),
+  wa: svg('<path d="M3 21l1.65-4.9A9 9 0 1 1 8 19.4L3 21z"/><path d="M9 10c.3 2 2.2 4.2 5 5l1.4-1.2-1.9-1.1-.9.6c-.8-.4-1.5-1.1-1.9-1.9l.6-.9L10.2 8 9 9.3z" fill="currentColor" stroke="none"/>'),
+  dup: svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  chat: svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+  chev: svg('<path d="M6 9l6 6 6-6"/>').replace('<svg','<svg class="chev"'),
+  del: svg('<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/>'),
+};
+
+/* ---------- שכבת נתונים ----------
+   אם ספריית Supabase נטענה: שרת משותף + התחברות. אחרת: מצב מקומי עם רשומות דמה. */
+const SB_URL = 'https://nfvvlxakmazelphloyzz.supabase.co';
+const SB_KEY = 'sb_publishable_RupvDHRQ18kSILjJJxaqQQ_rluIfrQ7';
+let sb = null;
+try{ if(window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY); }catch{}
+
+const toDb = r => ({name:r.name||'',kid:r.kid||'',phone:r.phone||'',left_date:r.leftDate||null,left_time:r.leftTime||'',
+  call_date:r.callDate||null,status:r.status,interest:r.interest||'',notes:r.notes||''});
+const fromDb = d => ({id:d.id,name:d.name,kid:d.kid||'',phone:d.phone||'',leftDate:d.left_date||'',leftTime:d.left_time||'',
+  callDate:d.call_date||'',status:d.status,interest:d.interest||'',notes:d.notes||''});
+const must = ({error}) => { if(error) throw error; };
+
+const Data = sb ? {
+  async load(){ const {data,error} = await sb.from('leads').select('*'); if(error) throw error; return data.map(fromDb); },
+  async insert(r){ must(await sb.from('leads').insert(toDb(r))); },
+  async update(id,r){ must(await sb.from('leads').update(toDb(r)).eq('id',id)); },
+  async remove(id){ must(await sb.from('leads').delete().eq('id',id)); },
+} : {
+  async load(){ return Store.load(); },
+  async insert(r){ const l=Store.load(); l.push({...r,id:uid()}); Store.save(l); },
+  async update(id,r){ const l=Store.load(); const i=l.findIndex(x=>x.id===id); if(i>=0) l[i]={...l[i],...r}; Store.save(l); },
+  async remove(id){ Store.save(Store.load().filter(x=>x.id!==id)); },
+};
+
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3500); }
+async function reload(){ try{ rows = await Data.load(); render(); }catch(e){ toast('שגיאה בטעינת הנתונים'); } }
+async function run(fn){ try{ await fn(); await reload(); return true; }catch(e){ toast('השמירה נכשלה, נסו שוב'); return false; } }
+
+function sorted(list){
+  // "ממתין ליצירת קשר" למעלה (הוותיקים ביותר קודם), אחר כך השאר מהחדש לישן
+  const k = r => r.leftDate+(r.leftTime||'');
+  const p = list.filter(r=>r.status===PENDING).sort((a,b)=>k(a).localeCompare(k(b)));
+  const o = list.filter(r=>r.status!==PENDING).sort((a,b)=>k(b).localeCompare(k(a)));
+  return [...p,...o];
+}
+
+function render(){
+  // צ'יפים
+  const counts = {}; rows.forEach(r=>counts[r.status]=(counts[r.status]||0)+1);
+  $('#chips').innerHTML = [{k:'הכל'},...STATUSES].map(s=>
+    `<button class="chip ${filter===s.k?'on':''}" data-f="${esc(s.k)}">${esc(lbl(s.k))}<b>${s.k==='הכל'?rows.length:(counts[s.k]||0)}</b></button>`).join('');
+
+  const q = query.trim().toLowerCase();
+  const list = sorted(rows.filter(r =>
+    (filter==='הכל'||r.status===filter) &&
+    (!q || [r.name,r.kid,r.phone,r.notes].join(' ').toLowerCase().includes(q))));
+
+  $('#count').textContent = `${list.length} רשומות`;
+
+  if(!list.length){
+    $('#list').innerHTML = `<div class="empty"><big>📭</big>${rows.length?'לא נמצאו תוצאות':'עוד אין רשומות — לחצו על ״רשומה חדשה״'}</div>`;
+    return;
+  }
+  let html='', lastPending=null;
+  list.forEach(r=>{
+    const isP = r.status===PENDING;
+    if(isP && lastPending===null){ html+=`<div class="sec pend">ממתינים ליצירת קשר</div>`; lastPending=true; }
+    if(!isP && lastPending!==false){ if(lastPending===true) html+=`<div class="sec">שאר הרשומות</div>`; lastPending=false; }
+    const open = expanded.has(r.id);
+    const tel = (r.phone||'').replace(/[^\d+]/g,'');
+    const wa = tel.replace(/^0/,'972').replace(/^\+/,'');
+    html+=`<article class="card ${isP?'pending':''}" data-id="${r.id}">
+      <div class="row1">
+        <div><div class="name">${esc(r.name)||'ללא שם'}</div><div class="kid">${r.kid?'👦 '+esc(r.kid):''}</div></div>
+      </div>
+      <div class="badges">
+        <span class="badge" style="background:${color(r.status)}">${esc(lbl(r.status))}</span>
+        ${r.interest?`<span class="badge tag">${esc(r.interest)}</span>`:''}
+      </div>
+      <div class="meta">
+        <div><span>השאיר פרטים</span>${isP&&r.leftTime?`<b class="urgent">${fmt(r.leftDate)} · ${esc(r.leftTime)}</b>`:fmt(r.leftDate)}</div>
+        <div><span>תאריך שיחה</span>${fmt(r.callDate)}</div>
+      </div>
+      <button class="mini talkbtn ${open?'open':''}" data-act="talk" aria-expanded="${open}"><span>${IC.chat}תוכן השיחה</span>${IC.chev}</button>
+      ${open?`<div class="talk ${r.notes?'':'none'}">${r.notes?esc(r.notes):'עוד אין סיכום שיחה. לחצו על הכרטיס כדי להוסיף.'}</div>`:''}
+      <div class="actions">
+        ${tel?`<a class="mini" href="tel:${tel}" data-stop>${IC.call}חיוג</a><a class="mini" href="https://wa.me/${wa}" target="_blank" rel="noopener" data-stop>${IC.wa}וואטסאפ</a>`:''}
+        <button class="mini" data-act="dup">${IC.dup}שכפול</button>
+        <button class="mini del" data-act="del" aria-label="מחיקה" title="מחיקה">${IC.del}</button>
+      </div>
+    </article>`;
+  });
+  $('#list').innerHTML = html;
+}
+
+/* ---------- חלון עריכה ---------- */
+function open(html){ $('#sheet').innerHTML=html; $('#overlay').classList.add('open'); }
+function close(){ $('#overlay').classList.remove('open'); }
+
+function form(id){
+  const r = rows.find(x=>x.id===id) || {name:'',kid:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',status:PENDING,interest:INTERESTS[0],notes:''};
+  const opt = (arr,v,f=x=>x)=>arr.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(f(x))}</option>`).join('');
+  open(`<h2>${id?'עריכת רשומה':'רשומה חדשה'}<button class="x" data-close>✕</button></h2>
+    <form id="f" autocomplete="off">
+      <label>שם איש קשר</label><input class="in" name="name" value="${esc(r.name)}" required>
+      <label>שם הילד</label><input class="in" name="kid" value="${esc(r.kid)}">
+      <label>טלפון (אופציונלי)</label><input class="in" name="phone" type="tel" inputmode="tel" value="${esc(r.phone)}">
+      <div class="two">
+        <div><label>תאריך השארת פרטים</label><input class="in" type="date" name="leftDate" value="${r.leftDate}" required></div>
+        <div><label>שעת השארת פרטים</label><input class="in" type="time" name="leftTime" value="${r.leftTime||''}"></div>
+      </div>
+      <div class="two">
+        <div><label>תאריך שיחה</label><input class="in" type="date" name="callDate" value="${r.callDate}"></div>
+      </div>
+      <label>סטטוס</label><select class="in" name="status">${opt(STATUSES.map(s=>s.k),r.status,lbl)}</select>
+      <label>במה מעוניין?</label><select class="in" name="interest">${opt(INTERESTS,r.interest)}</select>
+      <label>תוכן השיחה</label><textarea class="in" name="notes" rows="5" placeholder="סיכום קצר של מה שנאמר בשיחה">${esc(r.notes)}</textarea>
+      <button class="save">שמירה</button>
+    </form>`);
+  $('#f').onsubmit = async e=>{
+    e.preventDefault();
+    const d = Object.fromEntries(new FormData(e.target));
+    if(await run(()=> id ? Data.update(id,d) : Data.insert(d))) close();
+  };
+}
+
+function confirmDelete(id){
+  const r = rows.find(x=>x.id===id);
+  open(`<div class="confirm"><p>למחוק את ״${esc(r.name)}״?<br><small style="font-weight:400">אי אפשר לשחזר</small></p>
+    <div class="two"><button data-close>ביטול</button><button class="danger" id="yes">מחיקה</button></div></div>`);
+  $('#yes').onclick = async ()=>{ if(await run(()=>Data.remove(id))) close(); };
+}
+
+/* ---------- אירועים ---------- */
+$('#add').onclick = ()=>form();
+$('#search').oninput = e=>{ query=e.target.value; render(); };
+$('#chips').onclick = e=>{ const b=e.target.closest('.chip'); if(b){ filter=b.dataset.f; render(); } };
+$('#overlay').onclick = e=>{ if(e.target.id==='overlay'||e.target.closest('[data-close]')) close(); };
+$('#list').onclick = e=>{
+  if(e.target.closest('[data-stop]')) return;
+  const card = e.target.closest('.card'); if(!card) return;
+  const id = card.dataset.id, act = e.target.closest('[data-act]')?.dataset.act;
+  if(act==='talk'){ expanded.has(id)?expanded.delete(id):expanded.add(id); return render(); }
+  if(act==='del') return confirmDelete(id);
+  if(act==='dup'){
+    const r = rows.find(x=>x.id===id);
+    run(()=>Data.insert({...r,name:r.name+' (העתק)'})); return;
+  }
+  form(id);
+};
+
+/* ---------- התחברות והפעלה ---------- */
+let channel = null;
+function showLogin(on){ $('#login').classList.toggle('open',on); }
+async function enter(){
+  showLogin(false); $('#logout').hidden = !sb;
+  await reload();
+  if(sb && !channel){
+    channel = sb.channel('leads-live').on('postgres_changes',{event:'*',schema:'public',table:'leads'},reload).subscribe();
+  }
+}
+if(sb){
+  $('#loginForm').onsubmit = async e=>{
+    e.preventDefault(); $('#loginErr').textContent=''; $('#loginBtn').disabled=true;
+    const {error} = await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});
+    $('#loginBtn').disabled=false;
+    if(error) $('#loginErr').textContent='אימייל או סיסמה שגויים';
+    else { $('#pw').value=''; enter(); }
+  };
+  $('#logout').onclick = async ()=>{ await sb.auth.signOut(); if(channel){ sb.removeChannel(channel); channel=null; } rows=[]; render(); showLogin(true); };
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden && !$('#login').classList.contains('open')) reload(); });
+  sb.auth.getSession().then(({data})=> data.session ? enter() : (render(), showLogin(true)));
+} else {
+  reload();
+}
+</script>
+</body>
+</html>
