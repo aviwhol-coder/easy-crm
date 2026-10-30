@@ -81,6 +81,8 @@ label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px;text-align:
 .in:focus{box-shadow:var(--shadow)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .two>*{min-width:0}
+.pair{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.pair>*{min-width:0}
 .in{display:block;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;min-height:48px;line-height:1.3}
 textarea.in{min-height:84px;resize:vertical}
 form .in{text-align:right;text-align-last:right}
@@ -206,9 +208,9 @@ const SB_KEY = 'sb_publishable_RupvDHRQ18kSILjJJxaqQQ_rluIfrQ7';
 let sb = null;
 try{ if(window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY); }catch{}
 
-const toDb = r => ({name:r.name||'',kid:r.kid||'',phone:r.phone||'',left_date:r.leftDate||null,left_time:r.leftTime||'',
+const toDb = r => ({name:r.name||'',kid:r.kid||'',age:r.age||'',city:r.city||'',phone:r.phone||'',left_date:r.leftDate||null,left_time:r.leftTime||'',
   call_date:r.callDate||null,status:r.status,interest:r.interest||'',notes:r.notes||''});
-const fromDb = d => ({id:d.id,name:d.name,kid:d.kid||'',phone:d.phone||'',leftDate:d.left_date||'',leftTime:d.left_time||'',
+const fromDb = d => ({id:d.id,name:d.name,kid:d.kid||'',age:d.age||'',city:d.city||'',phone:d.phone||'',leftDate:d.left_date||'',leftTime:d.left_time||'',
   callDate:d.call_date||'',status:d.status,interest:d.interest||'',notes:d.notes||''});
 const must = ({error}) => { if(error) throw error; };
 
@@ -246,7 +248,7 @@ function render(){
   const q = query.trim().toLowerCase();
   const list = sorted(rows.filter(r =>
     (filter==='הכל'||r.status===filter) &&
-    (!q || [r.name,r.kid,r.phone,r.notes].join(' ').toLowerCase().includes(q))));
+    (!q || [r.name,r.kid,r.city,r.phone,r.notes].join(' ').toLowerCase().includes(q))));
 
   $('#count').textContent = `${list.length} רשומות`;
 
@@ -264,7 +266,7 @@ function render(){
     const wa = tel.replace(/^0/,'972').replace(/^\+/,'');
     html+=`<article class="card ${isP?'pending':''}" data-id="${r.id}">
       <div class="row1">
-        <div><div class="name">${esc(r.name)||'ללא שם'}</div><div class="kid">${r.kid?'👦 '+esc(r.kid):''}</div></div>
+        <div><div class="name">${esc(r.name)||'ללא שם'}</div><div class="kid">${r.kid||r.age?'👦 '+[esc(r.kid),r.age?'גיל '+esc(r.age):''].filter(Boolean).join(' · '):''}</div><div class="kid">${r.city?'📍 '+esc(r.city):''}</div></div>
       </div>
       <div class="badges">
         <span class="badge" style="background:${color(r.status)}">${esc(lbl(r.status))}</span>
@@ -291,12 +293,16 @@ function open(html){ $('#sheet').innerHTML=html; $('#overlay').classList.add('op
 function close(){ $('#overlay').classList.remove('open'); }
 
 function form(id){
-  const r = rows.find(x=>x.id===id) || {name:'',kid:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',status:PENDING,interest:INTERESTS[0],notes:''};
+  const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',status:PENDING,interest:INTERESTS[0],notes:''};
   const opt = (arr,v,f=x=>x)=>arr.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(f(x))}</option>`).join('');
   open(`<h2>${id?'עריכת רשומה':'רשומה חדשה'}<button class="x" data-close>✕</button></h2>
     <form id="f" autocomplete="off">
       <label>שם איש קשר</label><input class="in" name="name" value="${esc(r.name)}" required>
       <label>שם הילד</label><input class="in" name="kid" value="${esc(r.kid)}">
+      <div class="pair">
+        <div><label>גיל הילד</label><input class="in" name="age" inputmode="numeric" value="${esc(r.age)}"></div>
+        <div><label>עיר</label><input class="in" name="city" value="${esc(r.city)}"></div>
+      </div>
       <label>טלפון (אופציונלי)</label><input class="in" name="phone" type="tel" inputmode="tel" value="${esc(r.phone)}">
       <div class="two">
         <div><label>תאריך השארת פרטים</label><input class="in" type="date" name="leftDate" value="${r.leftDate}" required></div>
