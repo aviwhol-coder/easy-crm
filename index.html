@@ -68,6 +68,13 @@ main{padding:16px;max-width:720px;margin:0 auto;display:grid;gap:14px}
 .actions .mini{border:0;background:rgba(0,0,0,.04)}
 .actions .mini.del{flex:none;width:40px;height:40px;min-height:0;padding:0;border-radius:50%;color:var(--red);background:rgba(217,45,32,.08)}
 .actions .mini.del svg{width:18px;height:18px}
+.loader{display:flex;flex-direction:column;align-items:center;gap:18px;padding:70px 20px;font-weight:700}
+.spin{width:64px;height:64px;border-radius:50%;border:6px solid var(--ink);border-top-color:var(--yellow);border-right-color:#fff;background:var(--yellow);box-shadow:4px 4px 0 var(--ink);animation:spin .8s cubic-bezier(.5,.1,.5,.9) infinite}
+.dots span{display:inline-block;animation:hop 1s ease-in-out infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes hop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+@media (prefers-reduced-motion:reduce){.spin,.dots span{animation-duration:2.4s}}
 .empty{text-align:center;padding:50px 20px;color:var(--muted)}
 .empty big{display:block;font-size:44px;margin-bottom:8px}
 
@@ -187,6 +194,7 @@ function demoRows(){
   ];
 }
 let rows = [];
+let loaded = false;
 const expanded = new Set();   // כרטיסים שפתוחים להצגת תוכן השיחה (לא נשמר)
 let filter = 'הכל', query = '';
 const $ = s => document.querySelector(s);
@@ -235,7 +243,10 @@ const Data = sb ? {
 
 let toastT;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3500); }
-async function reload(){ try{ rows = await Data.load(); render(); }catch(e){ toast('שגיאה בטעינת הנתונים'); } }
+async function reload(){
+  if(!loaded) $('#list').innerHTML = `<div class="loader"><div class="spin"></div><div>טוען לידים<span class="dots"><span>.</span><span>.</span><span>.</span></span></div></div>`;
+  try{ rows = await Data.load(); loaded = true; render(); }catch(e){ toast('שגיאה בטעינת הנתונים'); if(!loaded) render(); }
+}
 async function run(fn){ try{ await fn(); await reload(); return true; }catch(e){ toast('השמירה נכשלה, נסו שוב'); return false; } }
 
 function sorted(list){
@@ -373,7 +384,7 @@ if(sb){
     if(error) $('#loginErr').textContent='אימייל או סיסמה שגויים';
     else { $('#pw').value=''; enter(); }
   };
-  $('#logout').onclick = async ()=>{ await sb.auth.signOut(); if(channel){ sb.removeChannel(channel); channel=null; } rows=[]; render(); showLogin(true); };
+  $('#logout').onclick = async ()=>{ await sb.auth.signOut(); if(channel){ sb.removeChannel(channel); channel=null; } rows=[]; loaded=false; render(); showLogin(true); };
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden && !$('#login').classList.contains('open')) reload(); });
   sb.auth.getSession().then(({data})=> data.session ? enter() : (render(), showLogin(true)));
 } else {
