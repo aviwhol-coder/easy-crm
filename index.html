@@ -165,12 +165,11 @@ form .two{grid-template-columns:1fr}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const STATUSES = [
-  {k:'ממתין ליצירת קשר', e:'⏳', c:'#ff8a80'},
+  {k:'צריך לחזור אליו', e:'🔁', c:'#ff8a80'},
   {k:'רשום', e:'✅', c:'var(--green)'},
   {k:'הוזמן לניסיון', e:'📩', c:'var(--blue)'},
   {k:'לא עונה', e:'📵', c:'var(--grey)'},
   {k:'היה בטיסת ניסיון', e:'✈️', c:'var(--purple)'},
-  {k:'צריך לחזור אליו', e:'🔁', c:'var(--pink)'},
   {k:'Standby', e:'⏸️', c:'#ffe08a'},
 ];
 const INTERESTS = ['קורס לנוער','חוג לילדים','קורס קדם צה״ל','קורס למבוגרים'];
@@ -196,9 +195,9 @@ function demoRows(){
   const mk = (name,kid,phone,left,call,status,interest,notes='') =>
     ({id:uid(),name,kid,phone,leftDate:ago(left),leftTime:['10:15','18:40','09:05','14:30','16:20','11:45','19:10','13:00'][n++%8],callDate:call==null?'':ago(call),status,interest,notes});
   return [
-    mk('דנה כהן','נועם','0501234567',5,null,'ממתין ליצירת קשר','חוג לילדים','ביקשה שיחה אחרי 17:00'),
-    mk('יוסי לוי','איתי','0527654321',3,null,'ממתין ליצירת קשר','קורס לנוער'),
-    mk('מיכל אברהם','תמר','0541112233',1,null,'ממתין ליצירת קשר','חוג לילדים'),
+    mk('דנה כהן','נועם','0501234567',5,null,'צריך לחזור אליו','חוג לילדים','ביקשה שיחה אחרי 17:00'),
+    mk('יוסי לוי','איתי','0527654321',3,null,'צריך לחזור אליו','קורס לנוער'),
+    mk('מיכל אברהם','תמר','0541112233',1,null,'צריך לחזור אליו','חוג לילדים'),
     mk('רונית שמעון','אורי','0509988776',9,7,'הוזמן לניסיון','קורס לנוער','מגיעים ביום שלישי'),
     mk('אבי מזרחי','דור','0533344556',14,12,'רשום','קורס קדם צה״ל','שילם מקדמה'),
     mk('נועה פרידמן','—','0586677889',10,8,'לא עונה','קורס למבוגרים','ניסיון שני ביום חמישי'),
@@ -261,7 +260,7 @@ async function reload(){
   try{ rows = await Data.load(); loaded = true; render(); }catch(e){ toast('שגיאה בטעינת הנתונים'); if(!loaded) render(); return; }
   checkReminders();
 }
-// תזכורת שהגיע תאריכה: הסטטוס עובר ל"ממתין ליצירת קשר" והתזכורת מתנקה
+// תזכורת שהגיע תאריכה: הסטטוס עובר ל"צריך לחזור אליו" והתזכורת מתנקה
 let remBusy = false;
 async function checkReminders(){
   if(remBusy) return;
@@ -271,7 +270,7 @@ async function checkReminders(){
   try{
     for(const r of due) await Data.update(r.id,{...r,status:PENDING,remindDate:''});
     rows = await Data.load(); render();
-    toast(due.length===1?'תזכורת הגיעה: רשומה חזרה להמתנה ליצירת קשר':`${due.length} תזכורות הגיעו: הרשומות חזרו להמתנה`);
+    toast(due.length===1?'תזכורת הגיעה: רשומה חזרה ל״צריך לחזור אליו״':`${due.length} תזכורות הגיעו: הרשומות חזרו ל״צריך לחזור אליו״`);
   }catch(e){ /* ננסה שוב בטעינה הבאה */ }
   remBusy = false;
 }
@@ -288,7 +287,7 @@ async function run(fn){
 }
 
 function sorted(list){
-  // "ממתין ליצירת קשר" למעלה (הוותיקים ביותר קודם), אחר כך השאר מהחדש לישן
+  // "צריך לחזור אליו" למעלה (הוותיקים ביותר קודם), אחר כך השאר מהחדש לישן
   const k = r => r.leftDate+(r.leftTime||'');
   const p = list.filter(r=>r.status===PENDING).sort((a,b)=>k(a).localeCompare(k(b)));
   const o = list.filter(r=>r.status!==PENDING).sort((a,b)=>k(b).localeCompare(k(a)));
@@ -320,7 +319,7 @@ function render(){
   }
   list.forEach(r=>{
     const isP = r.status===PENDING;
-    if(isP && lastPending===null){ html+=`<div class="sec pend">ממתינים ליצירת קשר</div>`; lastPending=true; }
+    if(isP && lastPending===null){ html+=`<div class="sec pend">צריך לחזור אליו</div>`; lastPending=true; }
     if(!isP && lastPending!==false){ if(lastPending===true) html+=`<div class="sec">שאר הרשומות</div>`; lastPending=false; }
     const open = expanded.has(r.id);
     const tel = (r.phone||'').replace(/[^\d+]/g,'');
