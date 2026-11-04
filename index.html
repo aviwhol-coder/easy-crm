@@ -107,6 +107,11 @@ form .two{grid-template-columns:1fr}
 .confirm .two{grid-template-columns:1fr 1fr}
 @media(min-width:520px){form .two{grid-template-columns:1fr 1fr}}
 .save{width:100%;margin-top:20px;background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:14px;font-weight:800;font-size:17px;box-shadow:var(--shadow);cursor:pointer}
+.income{background:var(--green);border:2px solid var(--ink);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.income span{font-weight:700;font-size:14px}
+.income b{font-weight:800;font-size:30px;margin-inline-start:auto}
+.income small{flex-basis:100%;color:rgba(13,12,34,.7);font-size:12px}
+[hidden]{display:none!important}
 .calls{display:grid;gap:8px}
 .callrow{display:flex;gap:8px;align-items:center}
 .callrow .in{flex:1}
@@ -170,6 +175,8 @@ const STATUSES = [
 ];
 const INTERESTS = ['קורס לנוער','חוג לילדים','קורס קדם צה״ל','קורס למבוגרים'];
 const PENDING = STATUSES[0].k;
+const REGISTERED = 'רשום';
+const money = n => '₪'+Number(n||0).toLocaleString('he-IL');
 
 /* ---------- שכבת אחסון ----------
    כרגע localStorage. כשנוסיף התחברות נחליף רק את הפונקציות כאן
@@ -230,9 +237,9 @@ let sb = null;
 try{ if(window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY); }catch{}
 
 const toDb = r => ({name:r.name||'',kid:r.kid||'',age:r.age||'',city:r.city||'',phone:r.phone||'',left_date:r.leftDate||null,left_time:r.leftTime||'',
-  call_date:r.callDate||null,extra_calls:r.extraCalls||[],remind_date:r.remindDate||null,status:r.status,interest:r.interest||'',notes:r.notes||''});
+  call_date:r.callDate||null,extra_calls:r.extraCalls||[],remind_date:r.remindDate||null,amount:r.amount===''||r.amount==null?null:Number(r.amount),status:r.status,interest:r.interest||'',notes:r.notes||''});
 const fromDb = d => ({id:d.id,name:d.name,kid:d.kid||'',age:d.age||'',city:d.city||'',phone:d.phone||'',leftDate:d.left_date||'',leftTime:d.left_time||'',
-  callDate:d.call_date||'',extraCalls:Array.isArray(d.extra_calls)?d.extra_calls:[],remindDate:d.remind_date||'',status:d.status,interest:d.interest||'',notes:d.notes||''});
+  callDate:d.call_date||'',extraCalls:Array.isArray(d.extra_calls)?d.extra_calls:[],remindDate:d.remind_date||'',amount:d.amount==null?'':d.amount,status:d.status,interest:d.interest||'',notes:d.notes||''});
 const must = ({error}) => { if(error) throw error; };
 
 const Data = sb ? {
@@ -296,6 +303,11 @@ function render(){
     return;
   }
   let html='', lastPending=null;
+  if(filter===REGISTERED){
+    const reg = rows.filter(r=>r.status===REGISTERED);
+    const total = reg.reduce((t,r)=>t+(Number(r.amount)||0),0);
+    html+=`<div class="income"><span>הכנסה חודשית</span><b>${money(total)}</b><small>${reg.length} רשומים</small></div>`;
+  }
   list.forEach(r=>{
     const isP = r.status===PENDING;
     if(isP && lastPending===null){ html+=`<div class="sec pend">ממתינים ליצירת קשר</div>`; lastPending=true; }
@@ -314,6 +326,7 @@ function render(){
       <div class="meta">
         <div><span>השאיר פרטים</span>${isP&&r.leftTime?`<b class="urgent">${fmt(r.leftDate)} · ${esc(r.leftTime)}</b>`:fmt(r.leftDate)}</div>
         <div><span>${(r.extraCalls||[]).length?'תאריכי שיחה':'תאריך שיחה'}</span>${[r.callDate,...(r.extraCalls||[])].filter(Boolean).map(fmt).join(' · ')||'—'}</div>
+        ${r.status===REGISTERED&&r.amount!==''?`<div><span>סכום חודשי</span><b>${money(r.amount)}</b></div>`:''}
         ${r.remindDate?`<div><span>תזכורת לחזור</span><b>🔔 ${fmt(r.remindDate)}</b></div>`:''}
       </div>
       <button class="mini talkbtn ${open?'open':''}" data-act="talk" aria-expanded="${open}"><span>${IC.chat}תוכן השיחה</span>${IC.chev}</button>
@@ -334,7 +347,7 @@ function close(){ $('#overlay').classList.remove('open'); }
 
 const callRow = v => `<div class="callrow"><input class="in" type="date" name="extraCall" value="${esc(v)}"><button type="button" class="plus rm" aria-label="הסרה" title="הסרה">✕</button></div>`;
 function form(id){
-  const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',extraCalls:[],remindDate:'',status:PENDING,interest:INTERESTS[0],notes:''};
+  const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',extraCalls:[],remindDate:'',amount:'',status:PENDING,interest:INTERESTS[0],notes:''};
   const opt = (arr,v,f=x=>x)=>arr.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(f(x))}</option>`).join('');
   open(`<h2>${id?'עריכת רשומה':'רשומה חדשה'}<button class="x" data-close>✕</button></h2>
     <form id="f" autocomplete="off">
@@ -356,10 +369,13 @@ function form(id){
       </div>
       <label>תזכורת: לחזור ללקוח בתאריך</label><input class="in" type="date" name="remindDate" value="${r.remindDate||''}">
       <label>סטטוס</label><select class="in" name="status">${opt(STATUSES.map(s=>s.k),r.status,lbl)}</select>
+      <div id="amtWrap" ${r.status===REGISTERED?'':'hidden'}><label>סכום חודשי (₪)</label><input class="in" name="amount" type="number" inputmode="decimal" min="0" step="any" value="${esc(r.amount)}"></div>
       <label>במה מעוניין?</label><select class="in" name="interest">${opt(INTERESTS,r.interest)}</select>
       <label>תוכן השיחה</label><textarea class="in" name="notes" rows="5" placeholder="סיכום קצר של מה שנאמר בשיחה">${esc(r.notes)}</textarea>
       <button class="save">שמירה</button>
     </form>`);
+  const stSel = $('#f').elements.status;
+  stSel.onchange = ()=>{ const on = stSel.value===REGISTERED; $('#amtWrap').hidden=!on; if(on) $('#f').elements.amount.focus(); };
   $('#addCall').onclick = ()=>{ $('#calls').insertAdjacentHTML('beforeend',callRow('')); $('#calls').lastElementChild.querySelector('input').focus(); };
   $('#calls').onclick = e=>{ const b=e.target.closest('.rm'); if(b) b.closest('.callrow').remove(); };
   $('#f').onsubmit = async e=>{
@@ -367,6 +383,7 @@ function form(id){
     const fd = new FormData(e.target);
     const d = Object.fromEntries(fd);
     d.extraCalls = fd.getAll('extraCall').filter(Boolean);
+    if(d.status!==REGISTERED) d.amount='';
     if(await run(()=> id ? Data.update(id,d) : Data.insert(d))) close();
   };
 }
