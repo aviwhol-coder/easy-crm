@@ -255,7 +255,7 @@ const Data = sb ? {
 };
 
 let toastT;
-function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3500); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),8000); }
 async function reload(){
   if(!loaded) $('#list').innerHTML = `<div class="loader"><div class="spin"></div><div>טוען לידים<span class="dots"><span>.</span><span>.</span><span>.</span></span></div></div>`;
   try{ rows = await Data.load(); loaded = true; render(); }catch(e){ toast('שגיאה בטעינת הנתונים'); if(!loaded) render(); return; }
@@ -275,7 +275,17 @@ async function checkReminders(){
   }catch(e){ /* ננסה שוב בטעינה הבאה */ }
   remBusy = false;
 }
-async function run(fn){ try{ await fn(); await reload(); return true; }catch(e){ toast('השמירה נכשלה, נסו שוב'); return false; } }
+async function run(fn){
+  try{ await fn(); }
+  catch(e){
+    console.error('save failed',e);
+    const detail = [e&&e.message, e&&e.details, e&&e.hint, e&&e.code].filter(Boolean).join(' | ');
+    toast('השמירה נכשלה: '+(detail||'שגיאה לא ידועה'));
+    return false;
+  }
+  await reload();   // כשל בטעינה מחדש כבר מדווח בנפרד ואינו נחשב כשל שמירה
+  return true;
+}
 
 function sorted(list){
   // "ממתין ליצירת קשר" למעלה (הוותיקים ביותר קודם), אחר כך השאר מהחדש לישן
