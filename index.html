@@ -107,6 +107,11 @@ form .two{grid-template-columns:1fr}
 .confirm .two{grid-template-columns:1fr 1fr}
 @media(min-width:520px){form .two{grid-template-columns:1fr 1fr}}
 .save{width:100%;margin-top:20px;background:var(--yellow);border:2px solid var(--ink);border-radius:999px;padding:14px;font-weight:800;font-size:17px;box-shadow:var(--shadow);cursor:pointer}
+.calls{display:grid;gap:8px}
+.callrow{display:flex;gap:8px;align-items:center}
+.callrow .in{flex:1}
+.plus{flex:none;width:48px;height:48px;border:2px solid var(--ink);border-radius:50%;background:var(--yellow);font-size:22px;font-weight:800;line-height:1;cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
+.plus.rm{background:#fff;font-size:15px;color:var(--red)}
 .confirm{text-align:center}
 .confirm p{font-size:17px;font-weight:600;margin:8px 0 18px}
 .confirm .two button{border:2px solid var(--ink);border-radius:999px;padding:12px;font-weight:700;cursor:pointer;background:#fff}
@@ -161,6 +166,7 @@ const STATUSES = [
   {k:'לא עונה', e:'📵', c:'var(--grey)'},
   {k:'היה בטיסת ניסיון', e:'✈️', c:'var(--purple)'},
   {k:'צריך לחזור אליו', e:'🔁', c:'var(--pink)'},
+  {k:'Standby', e:'⏸️', c:'#ffe08a'},
 ];
 const INTERESTS = ['קורס לנוער','חוג לילדים','קורס קדם צה״ל','קורס למבוגרים'];
 const PENDING = STATUSES[0].k;
@@ -199,7 +205,7 @@ const expanded = new Set();   // כרטיסים שפתוחים להצגת תוכ
 let filter = 'הכל', query = '';
 const $ = s => document.querySelector(s);
 const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const today = () => new Date().toISOString().slice(0,10);
+const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const nowTime = () => new Date().toTimeString().slice(0,5);
 const fmt = d => d ? d.split('-').reverse().join('/') : '—';
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -224,9 +230,9 @@ let sb = null;
 try{ if(window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY); }catch{}
 
 const toDb = r => ({name:r.name||'',kid:r.kid||'',age:r.age||'',city:r.city||'',phone:r.phone||'',left_date:r.leftDate||null,left_time:r.leftTime||'',
-  call_date:r.callDate||null,status:r.status,interest:r.interest||'',notes:r.notes||''});
+  call_date:r.callDate||null,extra_calls:r.extraCalls||[],remind_date:r.remindDate||null,status:r.status,interest:r.interest||'',notes:r.notes||''});
 const fromDb = d => ({id:d.id,name:d.name,kid:d.kid||'',age:d.age||'',city:d.city||'',phone:d.phone||'',leftDate:d.left_date||'',leftTime:d.left_time||'',
-  callDate:d.call_date||'',status:d.status,interest:d.interest||'',notes:d.notes||''});
+  callDate:d.call_date||'',extraCalls:Array.isArray(d.extra_calls)?d.extra_calls:[],remindDate:d.remind_date||'',status:d.status,interest:d.interest||'',notes:d.notes||''});
 const must = ({error}) => { if(error) throw error; };
 
 const Data = sb ? {
@@ -245,7 +251,22 @@ let toastT;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3500); }
 async function reload(){
   if(!loaded) $('#list').innerHTML = `<div class="loader"><div class="spin"></div><div>טוען לידים<span class="dots"><span>.</span><span>.</span><span>.</span></span></div></div>`;
-  try{ rows = await Data.load(); loaded = true; render(); }catch(e){ toast('שגיאה בטעינת הנתונים'); if(!loaded) render(); }
+  try{ rows = await Data.load(); loaded = true; render(); }catch(e){ toast('שגיאה בטעינת הנתונים'); if(!loaded) render(); return; }
+  checkReminders();
+}
+// תזכורת שהגיע תאריכה: הסטטוס עובר ל"ממתין ליצירת קשר" והתזכורת מתנקה
+let remBusy = false;
+async function checkReminders(){
+  if(remBusy) return;
+  const due = rows.filter(r=>r.remindDate && r.remindDate<=today());
+  if(!due.length) return;
+  remBusy = true;
+  try{
+    for(const r of due) await Data.update(r.id,{...r,status:PENDING,remindDate:''});
+    rows = await Data.load(); render();
+    toast(due.length===1?'תזכורת הגיעה: רשומה חזרה להמתנה ליצירת קשר':`${due.length} תזכורות הגיעו: הרשומות חזרו להמתנה`);
+  }catch(e){ /* ננסה שוב בטעינה הבאה */ }
+  remBusy = false;
 }
 async function run(fn){ try{ await fn(); await reload(); return true; }catch(e){ toast('השמירה נכשלה, נסו שוב'); return false; } }
 
@@ -292,7 +313,8 @@ function render(){
       </div>
       <div class="meta">
         <div><span>השאיר פרטים</span>${isP&&r.leftTime?`<b class="urgent">${fmt(r.leftDate)} · ${esc(r.leftTime)}</b>`:fmt(r.leftDate)}</div>
-        <div><span>תאריך שיחה</span>${fmt(r.callDate)}</div>
+        <div><span>${(r.extraCalls||[]).length?'תאריכי שיחה':'תאריך שיחה'}</span>${[r.callDate,...(r.extraCalls||[])].filter(Boolean).map(fmt).join(' · ')||'—'}</div>
+        ${r.remindDate?`<div><span>תזכורת לחזור</span><b>🔔 ${fmt(r.remindDate)}</b></div>`:''}
       </div>
       <button class="mini talkbtn ${open?'open':''}" data-act="talk" aria-expanded="${open}"><span>${IC.chat}תוכן השיחה</span>${IC.chev}</button>
       ${open?`<div class="talk ${r.notes?'':'none'}">${r.notes?esc(r.notes):'עוד אין סיכום שיחה. לחצו על הכרטיס כדי להוסיף.'}</div>`:''}
@@ -310,8 +332,9 @@ function render(){
 function open(html){ $('#sheet').innerHTML=html; $('#overlay').classList.add('open'); }
 function close(){ $('#overlay').classList.remove('open'); }
 
+const callRow = v => `<div class="callrow"><input class="in" type="date" name="extraCall" value="${esc(v)}"><button type="button" class="plus rm" aria-label="הסרה" title="הסרה">✕</button></div>`;
 function form(id){
-  const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',status:PENDING,interest:INTERESTS[0],notes:''};
+  const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',extraCalls:[],remindDate:'',status:PENDING,interest:INTERESTS[0],notes:''};
   const opt = (arr,v,f=x=>x)=>arr.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(f(x))}</option>`).join('');
   open(`<h2>${id?'עריכת רשומה':'רשומה חדשה'}<button class="x" data-close>✕</button></h2>
     <form id="f" autocomplete="off">
@@ -326,17 +349,24 @@ function form(id){
         <div><label>תאריך השארת פרטים</label><input class="in" type="date" name="leftDate" value="${r.leftDate}" required></div>
         <div><label>שעת השארת פרטים</label><input class="in" type="time" name="leftTime" value="${r.leftTime||''}"></div>
       </div>
-      <div class="two">
-        <div><label>תאריך שיחה</label><input class="in" type="date" name="callDate" value="${r.callDate}"></div>
+      <label>תאריך שיחה</label>
+      <div class="calls" id="calls">
+        <div class="callrow"><input class="in" type="date" name="callDate" value="${r.callDate}"><button type="button" class="plus" id="addCall" aria-label="הוספת תאריך שיחה" title="הוספת תאריך שיחה">＋</button></div>
+        ${(r.extraCalls||[]).map(callRow).join('')}
       </div>
+      <label>תזכורת: לחזור ללקוח בתאריך</label><input class="in" type="date" name="remindDate" value="${r.remindDate||''}">
       <label>סטטוס</label><select class="in" name="status">${opt(STATUSES.map(s=>s.k),r.status,lbl)}</select>
       <label>במה מעוניין?</label><select class="in" name="interest">${opt(INTERESTS,r.interest)}</select>
       <label>תוכן השיחה</label><textarea class="in" name="notes" rows="5" placeholder="סיכום קצר של מה שנאמר בשיחה">${esc(r.notes)}</textarea>
       <button class="save">שמירה</button>
     </form>`);
+  $('#addCall').onclick = ()=>{ $('#calls').insertAdjacentHTML('beforeend',callRow('')); $('#calls').lastElementChild.querySelector('input').focus(); };
+  $('#calls').onclick = e=>{ const b=e.target.closest('.rm'); if(b) b.closest('.callrow').remove(); };
   $('#f').onsubmit = async e=>{
     e.preventDefault();
-    const d = Object.fromEntries(new FormData(e.target));
+    const fd = new FormData(e.target);
+    const d = Object.fromEntries(fd);
+    d.extraCalls = fd.getAll('extraCall').filter(Boolean);
     if(await run(()=> id ? Data.update(id,d) : Data.insert(d))) close();
   };
 }
