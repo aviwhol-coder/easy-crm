@@ -344,7 +344,7 @@ function render(){
         <span class="badge" style="background:${color(r.status)}">${esc(lbl(r.status))}</span>
         ${r.interest?`<span class="badge tag">${esc(r.interest)}</span>`:''}
       </div>
-      ${isN?`<div class="newtimer"><i class="rdot"></i><span>עבר מאז שהתקבל:</span><span class="t" data-since="${esc(r.leftDate)}T${esc(r.leftTime||'00:00')}">—</span></div>`:''}
+      ${isN?`<div class="newtimer"><i class="rdot"></i><span>כמה זמן עבר מאז שהתקבל:</span><span class="t" data-since="${esc(r.leftDate)}T${esc(r.leftTime||'00:00')}">—</span></div>`:''}
       <div class="meta">
         <div><span>השאיר פרטים</span>${isP&&r.leftTime?`<b class="urgent">${fmt(r.leftDate)} · ${esc(r.leftTime)}</b>`:fmt(r.leftDate)}</div>
         <div><span>${(r.extraCalls||[]).length?'תאריכי שיחה':'תאריך שיחה'}</span>${[r.callDate,...(r.extraCalls||[])].filter(Boolean).map(fmt).join(' · ')||'—'}</div>
