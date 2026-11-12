@@ -119,6 +119,47 @@ form .two{grid-template-columns:1fr}
 .income b{font-weight:800;font-size:30px;margin-inline-start:auto}
 .income small{flex-basis:100%;color:rgba(13,12,34,.7);font-size:12px}
 [hidden]{display:none!important}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:3px;margin-bottom:10px}
+.tab{border:0;background:none;border-radius:999px;padding:8px 4px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--ink);color:#fff}
+.panel{background:#fff;border:2px solid var(--ink);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px}
+.panel h3{margin:0 0 12px;font-size:15px;font-weight:800}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi{background:#fff;border:2px solid var(--ink);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px}
+.kpi.main{grid-column:1/-1;background:var(--yellow)}
+.kpi span{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+.kpi.main span{color:rgba(13,12,34,.7)}
+.kpi b{display:block;font-size:30px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi.main b{font-size:44px}
+.kpi small{font-size:12px;font-weight:600}
+.up{color:#0a7d33}.down{color:var(--red)}
+.custom{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.custom label{margin-top:0}
+.bars{display:flex;align-items:flex-end;gap:3px;height:170px;padding-top:18px;direction:ltr}
+.bar{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative}
+.bar i{display:block;width:100%;max-width:34px;background:var(--yellow);border:2px solid var(--ink);border-bottom:0;border-radius:6px 6px 0 0;min-height:0}
+.bar i.z{border:0;height:2px!important;background:var(--grey)}
+.bar em{font-style:normal;font-size:11px;font-weight:700;margin-bottom:2px}
+.xl{display:flex;gap:3px;direction:ltr;border-top:2px solid var(--ink);padding-top:4px}
+.xl span{flex:1;min-width:0;text-align:center;font-size:10px;color:var(--muted);white-space:nowrap;overflow:visible}
+.hbar{display:grid;grid-template-columns:minmax(90px,auto) 1fr 28px;align-items:center;gap:8px;font-size:13px;margin:7px 0}
+.hbar .tr{background:var(--bg);border-radius:999px;height:14px;overflow:hidden;border:1.5px solid var(--ink)}
+.hbar .tr i{display:block;height:100%;background:var(--ink);border-radius:999px}
+.hbar b{text-align:left;font-variant-numeric:tabular-nums}
+.daynav{display:flex;align-items:center;gap:8px}
+.daynav .in{flex:1;text-align:center}
+.daynav .x{flex:none;width:44px;height:44px;font-size:18px;font-weight:800}
+.daynav .x:disabled{opacity:.3}
+.tl{display:grid;gap:10px}
+.ev{display:grid;grid-template-columns:48px 1fr;gap:10px;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:11px 12px;cursor:pointer}
+.ev.gone{cursor:default;opacity:.75}
+.ev time{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+.ev .who{font-weight:700;font-size:15px}
+.ev ul{margin:5px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px}
+.ev li{line-height:1.4;overflow-wrap:anywhere}
+.ev .by{font-size:11px;color:var(--muted);margin-top:6px}
+.ev .snip{display:block;margin-top:3px;padding:6px 8px;background:var(--bg);border-radius:8px;font-size:12.5px;white-space:pre-wrap;max-height:4.4em;overflow:hidden}
+.ev .badge{min-height:20px;font-size:11px;padding:0 8px;vertical-align:middle}
 .calls{display:grid;gap:8px}
 .callrow{display:flex;gap:8px;align-items:center}
 .callrow .in{flex:1}
@@ -147,8 +188,15 @@ form .two{grid-template-columns:1fr}
     <div class="logo" dir="ltr">easy <span>CRM</span></div>
     <div class="top-r"><div class="count" id="count"></div><button class="logout" id="logout" hidden>יציאה</button></div>
   </div>
-  <input class="search" id="search" type="search" placeholder="חיפוש לפי שם, ילד או טלפון…">
-  <div class="chips" id="chips"></div>
+  <div class="tabs" id="tabs" role="tablist">
+    <button class="tab on" data-v="leads">📋 לידים</button>
+    <button class="tab" data-v="stats">📊 סטטיסטיקה</button>
+    <button class="tab" data-v="day">🗓️ סיכום יומי</button>
+  </div>
+  <div id="leadsBar">
+    <input class="search" id="search" type="search" placeholder="חיפוש לפי שם, ילד או טלפון…">
+    <div class="chips" id="chips"></div>
+  </div>
 </header>
 
 <main id="list"></main>
@@ -304,7 +352,13 @@ function sorted(list){
   return [...n,...p,...o];
 }
 
+let view = 'leads';
 function render(){
+  document.querySelectorAll('#tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  $('#leadsBar').hidden = view!=='leads';
+  $('#add').hidden = view!=='leads';
+  if(view==='stats') return renderStats();
+  if(view==='day') return renderDay();
   // צ'יפים
   const counts = {}; rows.forEach(r=>counts[r.status]=(counts[r.status]||0)+1);
   $('#chips').innerHTML = [{k:'הכל'},...STATUSES].map(s=>
@@ -378,6 +432,158 @@ function tick(){
 }
 setInterval(tick,1000);
 
+/* ---------- תאריכים ---------- */
+const ds = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const pd = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+const addD = (s,n) => { const d=pd(s); d.setDate(d.getDate()+n); return ds(d); };
+const spanDays = (a,b) => Math.round((pd(b)-pd(a))/864e5)+1;
+const HE_M = ['ינו׳','פבר׳','מרץ','אפר׳','מאי','יוני','יולי','אוג׳','ספט׳','אוק׳','נוב׳','דצמ׳'];
+const short = s => { const d=pd(s); return d.getDate()+'/'+(d.getMonth()+1); };
+
+/* ---------- סטטיסטיקה ---------- */
+const RANGES = [{k:'day',t:'היום',n:1},{k:'7',t:'7 ימים',n:7},{k:'30',t:'חודש',n:30},{k:'90',t:'רבעון',n:90},{k:'365',t:'שנה',n:365},{k:'custom',t:'התאמה אישית'}];
+let range = '30', cFrom = addD(today(),-29), cTo = today();
+function rangeDates(){
+  if(range==='custom'){ let a=cFrom||today(), b=cTo||today(); if(a>b) [a,b]=[b,a]; return [a,b]; }
+  const n = RANGES.find(r=>r.k===range).n; return [addD(today(),-(n-1)), today()];
+}
+function buckets(a,b,list){
+  const len = spanDays(a,b);
+  if(len===1){   // לפי שעה
+    const out = Array.from({length:24},(_,h)=>({l:String(h).padStart(2,'0'),n:0,show:h%3===0}));
+    list.forEach(r=>{ const h=parseInt((r.leftTime||'').slice(0,2),10); if(h>=0&&h<24) out[h].n++; });
+    return out;
+  }
+  if(len<=31){
+    const out=[]; for(let d=a; d<=b; d=addD(d,1)) out.push({k:d,l:short(d),n:0});
+    const idx = Object.fromEntries(out.map((x,i)=>[x.k,i]));
+    list.forEach(r=>{ const i=idx[r.leftDate]; if(i!=null) out[i].n++; });
+    const step = Math.ceil(out.length/8); out.forEach((x,i)=>x.show = (out.length-1-i)%step===0);
+    return out;
+  }
+  if(len<=120){   // שבועות שמסתיימים בתאריך הסיום
+    const out=[]; for(let e=b; e>=a; e=addD(e,-7)){ const s=addD(e,-6)<a?a:addD(e,-6); out.unshift({s,e,l:short(s),n:0}); }
+    list.forEach(r=>{ const x=out.find(x=>r.leftDate>=x.s&&r.leftDate<=x.e); if(x) x.n++; });
+    const step = Math.ceil(out.length/7); out.forEach((x,i)=>x.show=(out.length-1-i)%step===0);
+    return out;
+  }
+  const out=[]; let d=pd(a); d.setDate(1);
+  while(ds(d)<=b){ out.push({k:ds(d).slice(0,7),l:HE_M[d.getMonth()]+(d.getMonth()===0||!out.length?' '+String(d.getFullYear()).slice(2):''),n:0}); d.setMonth(d.getMonth()+1); }
+  list.forEach(r=>{ const x=out.find(x=>x.k===r.leftDate.slice(0,7)); if(x) x.n++; });
+  const step = Math.ceil(out.length/12); out.forEach((x,i)=>x.show=(out.length-1-i)%step===0);
+  return out;
+}
+const hbars = (pairs) => { const max=Math.max(1,...pairs.map(p=>p[1]));
+  return pairs.filter(p=>p[1]).map(([k,v])=>`<div class="hbar"><span>${esc(k)}</span><div class="tr"><i style="width:${v/max*100}%"></i></div><b>${v}</b></div>`).join('') || '<div style="color:var(--muted);font-size:13px">אין נתונים בטווח</div>'; };
+function renderStats(){
+  const [a,b] = rangeDates();
+  const inR = rows.filter(r=>r.leftDate && r.leftDate>=a && r.leftDate<=b);
+  const len = spanDays(a,b);
+  const pa = addD(a,-len), pb = addD(a,-1);
+  const prev = rows.filter(r=>r.leftDate && r.leftDate>=pa && r.leftDate<=pb).length;
+  const diff = inR.length-prev;
+  const pct = prev ? Math.round(diff/prev*100) : null;
+  const reg = inR.filter(r=>r.status===REGISTERED).length;
+  const perDay = (inR.length/len);
+  const bk = buckets(a,b,inR);
+  const max = Math.max(1,...bk.map(x=>x.n));
+  const byInt = INTERESTS.map(k=>[k,inR.filter(r=>r.interest===k).length]);
+  const other = inR.filter(r=>!INTERESTS.includes(r.interest)).length; if(other) byInt.push(['אחר',other]);
+  const bySt = STATUSES.map(s=>[lbl(s.k),inR.filter(r=>r.status===s.k).length]);
+  $('#count').textContent = '';
+  $('#list').innerHTML = `
+    <div class="chips" id="ranges" style="padding:0">${RANGES.map(r=>`<button class="chip ${range===r.k?'on':''}" data-r="${r.k}">${r.t}</button>`).join('')}</div>
+    ${range==='custom'?`<div class="custom"><div><label>מתאריך</label><input class="in" type="date" id="cFrom" value="${cFrom}" max="${today()}"></div><div><label>עד תאריך</label><input class="in" type="date" id="cTo" value="${cTo}" max="${today()}"></div></div>`:''}
+    <div class="kpis">
+      <div class="kpi main"><span>לידים חדשים · ${a===b?fmt(a):fmt(a)+' – '+fmt(b)}</span><b>${inR.length}</b>
+        <small>${pct===null?(prev===0&&inR.length?'אין לידים בתקופה הקודמת להשוואה':'—'):`<span class="${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${Math.abs(pct)}%</span> לעומת ${len===1?'אתמול':'התקופה הקודמת'} (${prev})`}</small></div>
+      <div class="kpi"><span>ממוצע ליום</span><b>${perDay<10?perDay.toFixed(1):Math.round(perDay)}</b></div>
+      <div class="kpi"><span>נרשמו מתוכם</span><b>${reg}</b><small>${inR.length?Math.round(reg/inR.length*100)+'% המרה':''}</small></div>
+    </div>
+    <div class="panel"><h3>${len===1?'לפי שעה':len<=31?'לפי יום':len<=120?'לפי שבוע':'לפי חודש'}</h3>
+      <div class="bars">${bk.map(x=>`<div class="bar" title="${esc(x.l)}: ${x.n}">${x.n?`<em>${x.n}</em>`:''}<i class="${x.n?'':'z'}" style="height:${x.n/max*100}%"></i></div>`).join('')}</div>
+      <div class="xl">${bk.map(x=>`<span>${x.show?esc(x.l):''}</span>`).join('')}</div>
+    </div>
+    <div class="panel"><h3>במה מעוניינים</h3>${hbars(byInt)}</div>
+    <div class="panel"><h3>איפה הם עומדים היום</h3>${hbars(bySt)}</div>`;
+}
+
+/* ---------- סיכום יומי ---------- */
+const FIELD = {name:'שם',kid:'שם הילד',age:'גיל',city:'עיר',phone:'טלפון',left_date:'תאריך השארת פרטים',left_time:'שעת השארת פרטים',
+  call_date:'תאריך שיחה',extra_calls:'תאריכי שיחה נוספים',remind_date:'תזכורת',amount:'סכום חודשי',status:'סטטוס',interest:'תחום עניין',notes:'תוכן השיחה'};
+let day = today(), dayEv = {key:null,list:[],err:false};
+async function loadDay(){
+  if(!sb){ dayEv = {key:day,list:[],err:'local'}; return drawDay(); }
+  const key = day;
+  const from = pd(key), to = pd(addD(key,1));
+  const {data,error} = await sb.from('lead_events').select('*').gte('at',from.toISOString()).lt('at',to.toISOString()).order('at',{ascending:false}).limit(1000);
+  if(key!==day) return;
+  dayEv = {key, list:data||[], err:!!error};
+  if(view==='day') drawDay();
+}
+function renderDay(){ drawDay(); loadDay(); }
+const val = (f,v) => {
+  if(v==null||v===''||v==='[]') return '<i>ריק</i>';
+  if(f.endsWith('_date')) return fmt(v);
+  if(f==='extra_calls'){ try{ return JSON.parse(v).map(fmt).join(', ')||'<i>ריק</i>'; }catch{ return esc(v); } }
+  if(f==='amount') return money(v);
+  if(f==='status') return `<span class="badge" style="background:${color(v)}">${esc(lbl(v))}</span>`;
+  return esc(v);
+};
+function describe(e){
+  if(e.kind==='created') return `🆕 נוסף ליד חדש ${e.new_value?val('status',e.new_value):''}`;
+  if(e.kind==='deleted') return `🗑️ הרשומה נמחקה`;
+  if(e.field==='status') return `🔄 סטטוס: ${val('status',e.old_value)} ← ${val('status',e.new_value)}`;
+  if(e.field==='notes'){
+    if(!e.new_value) return '📝 תוכן השיחה נמחק';
+    return `📝 ${e.old_value?'תוכן השיחה עודכן':'נוסף תוכן שיחה'}<span class="snip">${esc(e.new_value)}</span>`;
+  }
+  if(e.field==='remind_date') return e.new_value?`🔔 נקבעה תזכורת ל-${fmt(e.new_value)}`:`🔔 התזכורת הוסרה`;
+  if(e.field==='call_date'&&e.new_value) return `📞 תאריך שיחה: ${fmt(e.new_value)}`;
+  return `✏️ ${esc(FIELD[e.field]||e.field)}: ${val(e.field,e.old_value)} ← ${val(e.field,e.new_value)}`;
+}
+function drawDay(){
+  $('#count').textContent = '';
+  const ready = dayEv.key===day;
+  const list = ready ? dayEv.list : [];
+  // מקבצים שינויים של אותה שמירה (אותו ליד, אותו רגע) לכרטיס אחד
+  const groups = [];
+  list.forEach(e=>{
+    const g = groups[groups.length-1];
+    if(g && g.lead_id===e.lead_id && g.at===e.at) g.items.push(e);
+    else groups.push({lead_id:e.lead_id, at:e.at, name:e.lead_name, by:e.actor_email, items:[e]});
+  });
+  const cnt = k => list.filter(k).length;
+  const nNew = cnt(e=>e.kind==='created'), nSt = cnt(e=>e.field==='status'), nNotes = cnt(e=>e.field==='notes'&&e.new_value), nLeads = new Set(list.map(e=>e.lead_id)).size;
+  const isToday = day===today();
+  let body;
+  if(dayEv.err==='local') body = `<div class="empty"><big>🔌</big>הסיכום היומי זמין רק במצב מחובר</div>`;
+  else if(!ready) body = `<div class="loader"><div class="spin"></div><div>טוען פעילות<span class="dots"><span>.</span><span>.</span><span>.</span></span></div></div>`;
+  else if(dayEv.err) body = `<div class="empty"><big>⚠️</big>שגיאה בטעינת הפעילות</div>`;
+  else if(!groups.length) body = `<div class="empty"><big>😴</big>לא הייתה פעילות ${isToday?'היום':'ביום הזה'}</div>`;
+  else body = `<div class="tl">${groups.map(g=>{
+      const exists = rows.some(r=>r.id===g.lead_id);
+      const t = new Date(g.at).toTimeString().slice(0,5);
+      return `<div class="ev ${exists?'':'gone'}" ${exists?`data-lead="${g.lead_id}"`:''}><time>${t}</time><div>
+        <div class="who">${esc(g.name)||'ללא שם'}</div>
+        <ul>${g.items.map(e=>`<li>${describe(e)}</li>`).join('')}</ul>
+        ${g.by?`<div class="by">ע״י ${esc(g.by.split('@')[0])}</div>`:''}
+      </div></div>`;}).join('')}</div>`;
+  $('#list').innerHTML = `
+    <div class="daynav">
+      <button class="x" id="dPrev" aria-label="יום קודם">→</button>
+      <input class="in" type="date" id="dPick" value="${day}" max="${today()}">
+      <button class="x" id="dNext" aria-label="יום הבא" ${isToday?'disabled':''}>←</button>
+    </div>
+    ${ready&&!dayEv.err?`<div class="kpis">
+      <div class="kpi"><span>לידים חדשים</span><b>${nNew}</b></div>
+      <div class="kpi"><span>שינויי סטטוס</span><b>${nSt}</b></div>
+      <div class="kpi"><span>סיכומי שיחה</span><b>${nNotes}</b></div>
+      <div class="kpi"><span>לידים שטופלו</span><b>${nLeads}</b></div>
+    </div>`:''}
+    ${body}`;
+}
+
 /* ---------- חלון עריכה ---------- */
 function open(html){ $('#sheet').innerHTML=html; $('#overlay').classList.add('open'); }
 function close(){ $('#overlay').classList.remove('open'); }
@@ -437,7 +643,22 @@ $('#add').onclick = ()=>form();
 $('#search').oninput = e=>{ query=e.target.value; render(); };
 $('#chips').onclick = e=>{ const b=e.target.closest('.chip'); if(b){ filter=b.dataset.f; render(); } };
 $('#overlay').onclick = e=>{ if(e.target.id==='overlay'||e.target.closest('[data-close]')) close(); };
+$('#tabs').onclick = e=>{ const b=e.target.closest('.tab'); if(b&&b.dataset.v!==view){ view=b.dataset.v; window.scrollTo(0,0); render(); } };
+$('#list').onchange = e=>{
+  if(e.target.id==='cFrom'){ cFrom=e.target.value; renderStats(); }
+  if(e.target.id==='cTo'){ cTo=e.target.value; renderStats(); }
+  if(e.target.id==='dPick' && e.target.value){ day=e.target.value>today()?today():e.target.value; renderDay(); }
+};
+$('#list').addEventListener('click', e=>{
+  const r = e.target.closest('[data-r]');
+  if(r){ range=r.dataset.r; return renderStats(); }
+  if(e.target.closest('#dPrev')){ day=addD(day,-1); return renderDay(); }
+  if(e.target.closest('#dNext')){ if(day<today()) day=addD(day,1); return renderDay(); }
+  const ev = e.target.closest('[data-lead]');
+  if(ev) form(ev.dataset.lead);
+});
 $('#list').onclick = e=>{
+  if(view!=='leads') return;
   if(e.target.closest('[data-stop]')) return;
   const card = e.target.closest('.card'); if(!card) return;
   const id = card.dataset.id, act = e.target.closest('[data-act]')?.dataset.act;
