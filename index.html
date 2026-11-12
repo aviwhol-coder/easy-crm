@@ -441,10 +441,11 @@ const HE_M = ['ינו׳','פבר׳','מרץ','אפר׳','מאי','יוני','י�
 const short = s => { const d=pd(s); return d.getDate()+'/'+(d.getMonth()+1); };
 
 /* ---------- סטטיסטיקה ---------- */
-const RANGES = [{k:'day',t:'היום',n:1},{k:'7',t:'7 ימים',n:7},{k:'30',t:'חודש',n:30},{k:'90',t:'רבעון',n:90},{k:'365',t:'שנה',n:365},{k:'custom',t:'התאמה אישית'}];
+const RANGES = [{k:'day',t:'היום',n:1},{k:'7',t:'7 ימים',n:7},{k:'mtd',t:'מתחילת החודש'},{k:'30',t:'חודש',n:30},{k:'90',t:'רבעון',n:90},{k:'365',t:'שנה',n:365},{k:'custom',t:'התאמה אישית'}];
 let range = '30', cFrom = addD(today(),-29), cTo = today();
 function rangeDates(){
   if(range==='custom'){ let a=cFrom||today(), b=cTo||today(); if(a>b) [a,b]=[b,a]; return [a,b]; }
+  if(range==='mtd') return [today().slice(0,8)+'01', today()];
   const n = RANGES.find(r=>r.k===range).n; return [addD(today(),-(n-1)), today()];
 }
 function buckets(a,b,list){
@@ -479,7 +480,12 @@ function renderStats(){
   const [a,b] = rangeDates();
   const inR = rows.filter(r=>r.leftDate && r.leftDate>=a && r.leftDate<=b);
   const len = spanDays(a,b);
-  const pa = addD(a,-len), pb = addD(a,-1);
+  let pa = addD(a,-len), pb = addD(a,-1);
+  if(range==='mtd'){   // משווים לאותם ימים בחודש הקודם
+    const t = pd(b), pm = new Date(t.getFullYear(), t.getMonth()-1, 1);
+    const last = new Date(t.getFullYear(), t.getMonth(), 0).getDate();
+    pa = ds(pm); pb = ds(new Date(pm.getFullYear(), pm.getMonth(), Math.min(t.getDate(), last)));
+  }
   const prev = rows.filter(r=>r.leftDate && r.leftDate>=pa && r.leftDate<=pb).length;
   const diff = inR.length-prev;
   const pct = prev ? Math.round(diff/prev*100) : null;
@@ -496,7 +502,7 @@ function renderStats(){
     ${range==='custom'?`<div class="custom"><div><label>מתאריך</label><input class="in" type="date" id="cFrom" value="${cFrom}" max="${today()}"></div><div><label>עד תאריך</label><input class="in" type="date" id="cTo" value="${cTo}" max="${today()}"></div></div>`:''}
     <div class="kpis">
       <div class="kpi main"><span>לידים חדשים · ${a===b?fmt(a):fmt(a)+' – '+fmt(b)}</span><b>${inR.length}</b>
-        <small>${pct===null?(prev===0&&inR.length?'אין לידים בתקופה הקודמת להשוואה':'—'):`<span class="${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${Math.abs(pct)}%</span> לעומת ${len===1?'אתמול':'התקופה הקודמת'} (${prev})`}</small></div>
+        <small>${pct===null?(prev===0&&inR.length?'אין לידים בתקופה הקודמת להשוואה':'—'):`<span class="${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${Math.abs(pct)}%</span> לעומת ${range==='mtd'?'אותם ימים בחודש שעבר':len===1?'אתמול':'התקופה הקודמת'} (${prev})`}</small></div>
       <div class="kpi"><span>ממוצע ליום</span><b>${perDay<10?perDay.toFixed(1):Math.round(perDay)}</b></div>
       <div class="kpi"><span>נרשמו מתוכם</span><b>${reg}</b><small>${inR.length?Math.round(reg/inR.length*100)+'% המרה':''}</small></div>
     </div>
