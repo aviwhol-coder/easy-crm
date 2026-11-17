@@ -164,6 +164,8 @@ form .two{grid-template-columns:1fr}
 .callrow{display:flex;gap:8px;align-items:center}
 .callrow .in{flex:1}
 .plus{flex:none;width:48px;height:48px;border:2px solid var(--ink);border-radius:50%;background:var(--yellow);font-size:22px;font-weight:800;line-height:1;cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
+.talkblk{display:grid;gap:8px;margin-top:10px;padding:10px;border:2px dashed var(--ink);border-radius:14px}
+.addtalk{margin-top:10px;width:100%}
 .plus.rm{background:#fff;font-size:15px;color:var(--red)}
 .confirm{text-align:center}
 .confirm p{font-size:17px;font-weight:600;margin:8px 0 18px}
@@ -227,6 +229,7 @@ const STATUSES = [
   {k:'לא עונה', e:'📵', c:'var(--grey)'},
   {k:'היה בטיסת ניסיון', e:'✈️', c:'var(--purple)'},
   {k:'Standby', e:'⏸️', c:'#ffe08a'},
+  {k:'ממתין לפתיחת קורס', e:'⏳', c:'#b2dfdb'},
 ];
 const INTERESTS = ['קורס לנוער','חוג לילדים','קורס קדם צה״ל','קורס למבוגרים'];
 const NEW = 'ליד חדש';
@@ -271,6 +274,7 @@ const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>
 const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const nowTime = () => new Date().toTimeString().slice(0,5);
 const fmt = d => d ? d.split('-').reverse().join('/') : '—';
+const cDate = x => (x&&typeof x==='object') ? x.date : x;   // שיחה נוספת: תאריך בלבד, או {date,notes}
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const lbl = k => { const s = STATUSES.find(x=>x.k===k); return s&&s.e ? s.e+' '+k : k; };
 const color = s => (STATUSES.find(x=>x.k===s)||{}).c || '#fff';
@@ -401,12 +405,12 @@ function render(){
       ${isN?`<div class="newtimer"><i class="rdot"></i><span>כמה זמן עבר מאז שהתקבל:</span><span class="t" data-since="${esc(r.leftDate)}T${esc(r.leftTime||'00:00')}">—</span></div>`:''}
       <div class="meta">
         <div><span>השאיר פרטים</span>${isP&&r.leftTime?`<b class="urgent">${fmt(r.leftDate)} · ${esc(r.leftTime)}</b>`:fmt(r.leftDate)}</div>
-        <div><span>${(r.extraCalls||[]).length?'תאריכי שיחה':'תאריך שיחה'}</span>${[r.callDate,...(r.extraCalls||[])].filter(Boolean).map(fmt).join(' · ')||'—'}</div>
+        <div><span>${(r.extraCalls||[]).length?'תאריכי שיחה':'תאריך שיחה'}</span>${[r.callDate,...(r.extraCalls||[]).map(cDate)].filter(Boolean).map(fmt).join(' · ')||'—'}</div>
         ${r.status===REGISTERED&&r.amount!==''?`<div><span>סכום חודשי</span><b>${money(r.amount)}</b></div>`:''}
         ${r.remindDate?`<div><span>תזכורת לחזור</span><b>🔔 ${fmt(r.remindDate)}</b></div>`:''}
       </div>
-      <button class="mini talkbtn ${open?'open':''}" data-act="talk" aria-expanded="${open}"><span>${IC.chat}תוכן השיחה</span>${IC.chev}</button>
-      ${open?`<div class="talk ${r.notes?'':'none'}">${r.notes?esc(r.notes):'עוד אין סיכום שיחה. לחצו על הכרטיס כדי להוסיף.'}</div>`:''}
+      <button class="mini talkbtn ${open?'open':''}" data-act="talk" aria-expanded="${open}"><span>${IC.chat}סיכום שיחה</span>${IC.chev}</button>
+      ${open?`<div class="talk ${r.notes?'':'none'}">${r.notes?esc(r.notes):'עוד אין סיכום שיחה. לחצו על הכרטיס כדי להוסיף.'}</div>${(r.extraCalls||[]).filter(x=>x&&x.notes).map(x=>`<div class="talk"><b>${fmt(x.date)}</b><br>${esc(x.notes)}</div>`).join('')}`:''}
       <div class="actions">
         ${tel?`<a class="mini" href="tel:${tel}" data-stop>${IC.call}חיוג</a><a class="mini" href="https://wa.me/${wa}" target="_blank" rel="noopener" data-stop>${IC.wa}וואטסאפ</a>`:''}
         <button class="mini" data-act="dup">${IC.dup}שכפול</button>
@@ -516,7 +520,7 @@ function renderStats(){
 
 /* ---------- סיכום יומי ---------- */
 const FIELD = {name:'שם',kid:'שם הילד',age:'גיל',city:'עיר',phone:'טלפון',left_date:'תאריך השארת פרטים',left_time:'שעת השארת פרטים',
-  call_date:'תאריך שיחה',extra_calls:'תאריכי שיחה נוספים',remind_date:'תזכורת',amount:'סכום חודשי',status:'סטטוס',interest:'תחום עניין',notes:'תוכן השיחה'};
+  call_date:'תאריך שיחה',extra_calls:'תאריכי שיחה נוספים',remind_date:'תזכורת',amount:'סכום חודשי',status:'סטטוס',interest:'תחום עניין',notes:'סיכום שיחה'};
 let day = today(), dayEv = {key:null,list:[],err:false};
 async function loadDay(){
   if(!sb){ dayEv = {key:day,list:[],err:'local'}; return drawDay(); }
@@ -531,7 +535,7 @@ function renderDay(){ drawDay(); loadDay(); }
 const val = (f,v) => {
   if(v==null||v===''||v==='[]') return '<i>ריק</i>';
   if(f.endsWith('_date')) return fmt(v);
-  if(f==='extra_calls'){ try{ return JSON.parse(v).map(fmt).join(', ')||'<i>ריק</i>'; }catch{ return esc(v); } }
+  if(f==='extra_calls'){ try{ return JSON.parse(v).map(x=>fmt(cDate(x))+(x&&x.notes?': '+x.notes:'')).join(', ')||'<i>ריק</i>'; }catch{ return esc(v); } }
   if(f==='amount') return money(v);
   if(f==='status') return `<span class="badge" style="background:${color(v)}">${esc(lbl(v))}</span>`;
   return esc(v);
@@ -541,8 +545,8 @@ function describe(e){
   if(e.kind==='deleted') return `🗑️ הרשומה נמחקה`;
   if(e.field==='status') return `🔄 סטטוס: ${val('status',e.old_value)} ← ${val('status',e.new_value)}`;
   if(e.field==='notes'){
-    if(!e.new_value) return '📝 תוכן השיחה נמחק';
-    return `📝 ${e.old_value?'תוכן השיחה עודכן':'נוסף תוכן שיחה'}<span class="snip">${esc(e.new_value)}</span>`;
+    if(!e.new_value) return '📝 סיכום השיחה נמחק';
+    return `📝 ${e.old_value?'סיכום השיחה עודכן':'נוסף סיכום שיחה'}<span class="snip">${esc(e.new_value)}</span>`;
   }
   if(e.field==='remind_date') return e.new_value?`🔔 נקבעה תזכורת ל-${fmt(e.new_value)}`:`🔔 התזכורת הוסרה`;
   if(e.field==='call_date'&&e.new_value) return `📞 תאריך שיחה: ${fmt(e.new_value)}`;
@@ -595,6 +599,7 @@ function open(html){ $('#sheet').innerHTML=html; $('#overlay').classList.add('op
 function close(){ $('#overlay').classList.remove('open'); }
 
 const callRow = v => `<div class="callrow"><input class="in" type="date" name="extraCall" value="${esc(v)}"><button type="button" class="plus rm" aria-label="הסרה" title="הסרה">✕</button></div>`;
+const talkBlock = x => `<div class="talkblk"><div class="callrow"><input class="in" type="date" name="talkDate" value="${esc((x&&x.date)||'')}" required aria-label="תאריך השיחה"><button type="button" class="plus rm" aria-label="הסרה" title="הסרה">✕</button></div><textarea class="in" name="talkNotes" rows="4" placeholder="סיכום השיחה הנוספת">${esc((x&&x.notes)||'')}</textarea></div>`;
 function form(id){
   const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',extraCalls:[],remindDate:'',amount:'',status:NEW,interest:INTERESTS[0],notes:''};
   const opt = (arr,v,f=x=>x)=>arr.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(f(x))}</option>`).join('');
@@ -614,24 +619,29 @@ function form(id){
       <label>תאריך שיחה</label>
       <div class="calls" id="calls">
         <div class="callrow"><input class="in" type="date" name="callDate" value="${r.callDate}"><button type="button" class="plus" id="addCall" aria-label="הוספת תאריך שיחה" title="הוספת תאריך שיחה">＋</button></div>
-        ${(r.extraCalls||[]).map(callRow).join('')}
+        ${(r.extraCalls||[]).filter(x=>typeof x==='string').map(callRow).join('')}
       </div>
       <label>תזכורת: לחזור ללקוח בתאריך</label><input class="in" type="date" name="remindDate" value="${r.remindDate||''}">
       <label>סטטוס</label><select class="in" name="status">${opt(STATUSES.map(s=>s.k),r.status,lbl)}</select>
       <div id="amtWrap" ${r.status===REGISTERED?'':'hidden'}><label>סכום חודשי (₪)</label><input class="in" name="amount" type="number" inputmode="decimal" min="0" step="any" value="${esc(r.amount)}"></div>
       <label>במה מעוניין?</label><select class="in" name="interest">${opt(INTERESTS,r.interest)}</select>
-      <label>תוכן השיחה</label><textarea class="in" name="notes" rows="5" placeholder="סיכום קצר של מה שנאמר בשיחה">${esc(r.notes)}</textarea>
+      <label>סיכום שיחה</label><textarea class="in" name="notes" rows="5" placeholder="סיכום קצר של מה שנאמר בשיחה">${esc(r.notes)}</textarea>
+      <div id="talks">${(r.extraCalls||[]).filter(x=>x&&typeof x==='object').map(talkBlock).join('')}</div>
+      <button type="button" class="mini addtalk" id="addTalk">＋ הוספת שיחה נוספת</button>
       <button class="save">שמירה</button>
     </form>`);
   const stSel = $('#f').elements.status;
   stSel.onchange = ()=>{ const on = stSel.value===REGISTERED; $('#amtWrap').hidden=!on; if(on) $('#f').elements.amount.focus(); };
   $('#addCall').onclick = ()=>{ $('#calls').insertAdjacentHTML('beforeend',callRow('')); $('#calls').lastElementChild.querySelector('input').focus(); };
+  $('#addTalk').onclick = ()=>{ $('#talks').insertAdjacentHTML('beforeend',talkBlock({date:today()})); $('#talks').lastElementChild.querySelector('textarea').focus(); };
+  $('#talks').onclick = e=>{ const b=e.target.closest('.rm'); if(b) b.closest('.talkblk').remove(); };
   $('#calls').onclick = e=>{ const b=e.target.closest('.rm'); if(b) b.closest('.callrow').remove(); };
   $('#f').onsubmit = async e=>{
     e.preventDefault();
     const fd = new FormData(e.target);
     const d = Object.fromEntries(fd);
-    d.extraCalls = fd.getAll('extraCall').filter(Boolean);
+    const tn = fd.getAll('talkNotes');
+    d.extraCalls = [...fd.getAll('extraCall').filter(Boolean), ...fd.getAll('talkDate').map((date,i)=>({date,notes:(tn[i]||'').trim()}))];
     if(d.status!==REGISTERED) d.amount='';
     if(await run(()=> id ? Data.update(id,d) : Data.insert(d))) close();
   };
