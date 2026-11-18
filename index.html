@@ -42,7 +42,15 @@ main{padding:16px;max-width:720px;margin:0 auto;display:grid;gap:14px}
 .sec{font-weight:800;font-size:14px;margin:6px 2px -4px;display:flex;align-items:center;gap:8px}
 .sec::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--yellow);border:2px solid var(--ink)}
 
-.card{background:var(--card);border:2px solid var(--ink);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;cursor:pointer}
+.card{position:relative;background:var(--card);border:2px solid var(--ink);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;cursor:pointer}
+.dolev{position:absolute;top:10px;left:10px;background:#ffd6f0;border:2px solid var(--ink);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;line-height:1.2}
+.tgl{display:flex;align-items:center;gap:10px;margin:14px 0 4px;cursor:pointer;font-weight:700}
+.tgl input{position:absolute;opacity:0;pointer-events:none}
+.tgl i{flex:none;width:44px;height:26px;border:2px solid var(--ink);border-radius:999px;background:#fff;position:relative;transition:background .15s}
+.tgl i::after{content:'';position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:var(--ink);transition:right .15s}
+.tgl input:checked+i{background:#ffd6f0}
+.tgl input:checked+i::after{right:20px}
+.tgl input:focus-visible+i{outline:2px solid var(--blue);outline-offset:2px}
 .card.pending{background:#FFE3E0;border-color:var(--red);box-shadow:3px 3px 0 var(--red)}
 .card.pending .actions{border-top-color:#f3b8b2}
 .sec.pend{gap:12px}
@@ -297,9 +305,9 @@ let sb = null;
 try{ if(window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY); }catch{}
 
 const toDb = r => ({name:r.name||'',kid:r.kid||'',age:r.age||'',city:r.city||'',phone:r.phone||'',left_date:r.leftDate||null,left_time:r.leftTime||'',
-  call_date:r.callDate||null,extra_calls:r.extraCalls||[],remind_date:r.remindDate||null,amount:r.amount===''||r.amount==null?null:Number(r.amount),status:r.status,interest:r.interest||'',notes:r.notes||''});
+  call_date:r.callDate||null,extra_calls:r.extraCalls||[],remind_date:r.remindDate||null,amount:r.amount===''||r.amount==null?null:Number(r.amount),status:r.status,interest:r.interest||'',notes:r.notes||'',dolev:!!r.dolev});
 const fromDb = d => ({id:d.id,name:d.name,kid:d.kid||'',age:d.age||'',city:d.city||'',phone:d.phone||'',leftDate:d.left_date||'',leftTime:d.left_time||'',
-  callDate:d.call_date||'',extraCalls:Array.isArray(d.extra_calls)?d.extra_calls:[],remindDate:d.remind_date||'',amount:d.amount==null?'':d.amount,status:d.status,interest:d.interest||'',notes:d.notes||''});
+  callDate:d.call_date||'',extraCalls:Array.isArray(d.extra_calls)?d.extra_calls:[],remindDate:d.remind_date||'',amount:d.amount==null?'':d.amount,status:d.status,interest:d.interest||'',notes:d.notes||'',dolev:!!d.dolev});
 const must = ({error}) => { if(error) throw error; };
 
 const Data = sb ? {
@@ -395,6 +403,7 @@ function render(){
     const tel = (r.phone||'').replace(/[^\d+]/g,'');
     const wa = tel.replace(/^0/,'972').replace(/^\+/,'');
     html+=`<article class="card ${isP?'pending':''} ${isN?'isnew':''}" data-id="${r.id}">
+      ${r.dolev?`<span class="dolev">🖕ליד דולב</span>`:''}
       <div class="row1">
         <div><div class="name">${esc(r.name)||'ללא שם'}</div><div class="kid">${r.kid||r.age?'👦 '+[esc(r.kid),r.age?'גיל '+esc(r.age):''].filter(Boolean).join(' · '):''}</div><div class="kid">${r.city?'📍 '+esc(r.city):''}</div></div>
       </div>
@@ -601,7 +610,7 @@ function close(){ $('#overlay').classList.remove('open'); }
 const callRow = v => `<div class="callrow"><input class="in" type="date" name="extraCall" value="${esc(v)}"><button type="button" class="plus rm" aria-label="הסרה" title="הסרה">✕</button></div>`;
 const talkBlock = x => `<div class="talkblk"><div class="callrow"><input class="in" type="date" name="talkDate" value="${esc((x&&x.date)||'')}" required aria-label="תאריך השיחה"><button type="button" class="plus rm" aria-label="הסרה" title="הסרה">✕</button></div><textarea class="in" name="talkNotes" rows="4" placeholder="סיכום השיחה הנוספת">${esc((x&&x.notes)||'')}</textarea></div>`;
 function form(id){
-  const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',extraCalls:[],remindDate:'',amount:'',status:NEW,interest:INTERESTS[0],notes:''};
+  const r = rows.find(x=>x.id===id) || {name:'',kid:'',age:'',city:'',phone:'',leftDate:today(),leftTime:nowTime(),callDate:'',extraCalls:[],remindDate:'',amount:'',status:NEW,interest:INTERESTS[0],notes:'',dolev:false};
   const opt = (arr,v,f=x=>x)=>arr.map(x=>`<option value="${esc(x)}" ${x===v?'selected':''}>${esc(f(x))}</option>`).join('');
   open(`<h2>${id?'עריכת רשומה':'רשומה חדשה'}<button class="x" data-close>✕</button></h2>
     <form id="f" autocomplete="off">
@@ -624,6 +633,7 @@ function form(id){
       <label>תזכורת: לחזור ללקוח בתאריך</label><input class="in" type="date" name="remindDate" value="${r.remindDate||''}">
       <label>סטטוס</label><select class="in" name="status">${opt(STATUSES.map(s=>s.k),r.status,lbl)}</select>
       <div id="amtWrap" ${r.status===REGISTERED?'':'hidden'}><label>סכום חודשי (₪)</label><input class="in" name="amount" type="number" inputmode="decimal" min="0" step="any" value="${esc(r.amount)}"></div>
+      <label class="tgl"><input type="checkbox" name="dolev" ${r.dolev?'checked':''}><i></i><span>🖕 ליד דולב (הופנה ע״י דולב)</span></label>
       <label>במה מעוניין?</label><select class="in" name="interest">${opt(INTERESTS,r.interest)}</select>
       <label>סיכום שיחה</label><textarea class="in" name="notes" rows="5" placeholder="סיכום קצר של מה שנאמר בשיחה">${esc(r.notes)}</textarea>
       <div id="talks">${(r.extraCalls||[]).filter(x=>x&&typeof x==='object').map(talkBlock).join('')}</div>
@@ -641,6 +651,7 @@ function form(id){
     const fd = new FormData(e.target);
     const d = Object.fromEntries(fd);
     const tn = fd.getAll('talkNotes');
+    d.dolev = fd.has('dolev');
     d.extraCalls = [...fd.getAll('extraCall').filter(Boolean), ...fd.getAll('talkDate').map((date,i)=>({date,notes:(tn[i]||'').trim()}))];
     if(d.status!==REGISTERED) d.amount='';
     if(await run(()=> id ? Data.update(id,d) : Data.insert(d))) close();
